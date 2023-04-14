@@ -27,8 +27,8 @@ int main()
 	Tcamera camera;
 	Trenderer render;
 	Tobject light;
-	Tobject tile_floor, obj_pellet, obj_background, obj_body;
-	unsigned int floorDiffuse, floorSpecular, diff_apple, spec_apple, diff_background, diff_body, diff_head, diff_tail;
+	Tobject tile_floor, obj_pellet, obj_background, obj_body, obj_guide;
+	unsigned int floorDiffuse, floorSpecular, diff_apple, spec_apple, diff_background, diff_body, diff_head, diff_tail, diff_guide;
 	unsigned int lightShader, instanceShader, objects_shader;
 	unsigned int uboMatrices;
 	unsigned int ibTiles;
@@ -36,15 +36,17 @@ int main()
 	size_t counter = 0, sep = 0;
 	float objectsHeight = -4.0f;
 	float x, y, prev_x, prev_y;
+	float xp, yp;
 	int dir = 0, last_dir = 0;
 	float speed = 0.16f;
 	int clock_time = 0;
 	int score = 0;
 	int status = 1;
 	float effectTimer = 0;
-	vec3 pelletColor = {0.3f, 0.5f, 1.0f};
+	vec3 pelletColor = {0.4f, 0.1f, 1.0f};
 	vec3 lighColor = {1.0f, 1.0f, 1.0f};
-	vec3 bodyColor = {0.2f, 0.9f, 0.4f};
+	vec3 bodyColorAl = {0.4f, 1.0f, 0.85f};
+	vec3 bodyColorDe = {0.8f, 0.2f, 0.6f};
 	vec3 adjustRot = {0.0f, 0.0f, 1.0f};
 	unsigned int seed;
 	vec3 scene_color = {0.2f, 0.4f, 0.35f};
@@ -76,24 +78,26 @@ int main()
 	createTexture(&diff_tail, "./source/images/tail.png", 2, 1);
 	
 	createTexture(&diff_background, "./source/images/bkg.png", 2, 1);
+	createTexture(&diff_guide, "./source/images/wasd.png", 2, 1);
 	
-	instance_create_quad(&obj_background, 0.0f, 0.0f, -1.002f, 640, 640, 1.0f, 5);
+	instance_create_quad(&obj_background, 0.0f, 0.0f, -1.003f, 640, 640, 1.0f, 5);
 	
 	instance_create_cube(&light, 0.0f, 0.0f, 0.3f, 100, 100, 100, 0.5f, 5);
 	instance_create_quad(&tile_floor, 0.0f, 0.0f, 0.0f, 100, 100, 1.0f, 5);
 	instance_create_quad(&obj_pellet, 0.0f, 0.0f, -1.001f, 16, 16, 1.0f, 5);
 	instance_create_quad(&obj_body, 0.0f, 0.0f, -1.0f, 16, 16, 1.0f, 5);
+	instance_create_quad(&obj_guide, 0.0f, 0.0f, -1.0002f, 192, 192, 1.0f, 5);
 	
 	prepare_lightobj(&lightShader, pelletColor);
 	prepare_material(&instanceShader, 1, 0.0f);
 	prepare_material_lum(&instanceShader, 0, false, pelletColor, 0.7f, 0.09f, 0.032f);
 	
 	prepare_material(&objects_shader, 200, 0.0f);
-	prepare_material_lum(&objects_shader, 0, false, lighColor, 0.2f, 0.7f, 0.22f);
+	prepare_material_lum(&objects_shader, 0, false, lighColor, 0.0001f, 0.7f, 2.5f);
 	prepare_material_lum(&objects_shader, 1, false, pelletColor, 1.0f, 4.8f, 14.5f);
 	for(i = 2; i < 200; i++)
 	{
-		prepare_material_lum(&objects_shader, i, false, bodyColor, 1.0f, 0.7f, 90.0f);
+		prepare_material_lum(&objects_shader, i, false, bodyColorAl, 1.0f, 0.7f, 90.0f);
 		light_position(&objects_shader, i, lpos);
 	}
 	
@@ -110,10 +114,12 @@ int main()
 	
 	while(obj_pellet.position[0] == 0)
 	{
-		obj_pellet.position[0] = ((float)((random()%36)-18)*16)/100+0.08f;
-		obj_pellet.position[1] = ((float)((random()%36)-18)*16)/100+0.08f;
+		xp = ((float)((random()%36)-18)*16)/100;
+		yp = ((float)((random()%36)-18)*16)/100;
+		obj_pellet.position[0] = xp+0.08f;
+		obj_pellet.position[1] = yp+0.08f;
 	}
-	x = 0.08, y = 0.08;
+	x = 0.0, y = 0.0;
 	push(&tail, &head, x, y, dir);
 	
 	
@@ -134,6 +140,12 @@ int main()
 		bind_texture(diff_background, 0);
 		instance_draw(obj_background, &objects_shader, camera);
 		
+		if (!score)
+		{
+			bind_texture(diff_guide, 0);
+			instance_draw(obj_guide, &objects_shader, camera);
+		}
+		
 		glm_mat4_identity(obj_pellet.model);
 		glm_translate(obj_pellet.model, obj_pellet.position);
 		glm_rotate(obj_pellet.model, glm_rad(glfwGetTime() * 20), adjustRot);
@@ -152,8 +164,8 @@ int main()
 		counter = 2;
 		while(temp)
 		{
-			obj_body.position[0] = temp->x;
-			obj_body.position[1] = temp->y;
+			obj_body.position[0] = temp->x+0.08f;
+			obj_body.position[1] = temp->y+0.08f;
 			glm_mat4_identity(obj_body.model);
 			glm_translate(obj_body.model, obj_body.position);
 			bind_texture(diff_body, 0);
@@ -169,14 +181,12 @@ int main()
 					{
 						if (status)
 						{
-							bodyColor[0] = 0.9;
-							bodyColor[1] = 0.1;
-							bodyColor[2] = 0.3;
 							for(i = 2; i < 200; i++)
 							{
-								prepare_material_lum(&objects_shader, i, false, bodyColor, 1.0f, 0.7f, 90.0f);
+								prepare_material_lum(&objects_shader, i, false, bodyColorDe, 1.0f, 0.7f, 90.0f);
 							}
 							system("play ./source/sounds/death");
+							effectTimer = 0.1;
 							status = 0;
 							prev_x = x;
 							prev_y = y;
@@ -206,13 +216,14 @@ int main()
 			}
 			if (head)
 			{
-				printf("p x:%f y:%f\n", (obj_pellet.position[0])*100+320, (obj_pellet.position[1])*100+320);
 				printf("h x:%f y:%f\n", x*100+320, y*100+320);
 				printf("----------------------------\n");
-				if (x == obj_pellet.position[0] && y == obj_pellet.position[1])
+				if (x == xp && y == yp)
 				{
-					obj_pellet.position[0] = ((float)((random()%36)-18)*16)/100+0.08f;
-					obj_pellet.position[1] = ((float)((random()%36)-18)*16)/100+0.08f;
+					xp = ((float)((random()%36)-18)*16)/100;
+					yp = ((float)((random()%36)-18)*16)/100;
+					obj_pellet.position[0] = xp+0.08f;
+					obj_pellet.position[1] = yp+0.08f;
 					system("play ./source/sounds/pickup & disown");
 					effectTimer = 0.2;
 					score++;
@@ -225,6 +236,7 @@ int main()
 						free(aux);
 						if (!status)
 						{
+							effectTimer += 0.015;
 							system("play ./source/sounds/hurt3 & disown");
 						}
 					}
@@ -233,10 +245,7 @@ int main()
 						status = 1;
 						for(i = 2; i < 200; i++)
 						{
-							bodyColor[0] = 0.2f;
-							bodyColor[1] = 0.9f;
-							bodyColor[2] = 0.4f;
-							prepare_material_lum(&objects_shader, i, false, bodyColor, 1.0f, 0.7f, 90.0f);
+							prepare_material_lum(&objects_shader, i, false, bodyColorAl, 1.0f, 0.7f, 90.0f);
 							light_position(&objects_shader, i, lpos);
 						}
 					}
@@ -244,16 +253,23 @@ int main()
 				
 			}
 		}
-		if (((int)((head->x-0.08f)*100)%16) == 0)
+		if (((int)((head->x)*100)%16) == 0)
 		{
-			if (((int)((head->y-0.08f)*100)%16) == 0)
+			if (((int)((head->y)*100)%16) == 0)
 			{
 				dir = last_dir;
 			}
 		}
 		if (effectTimer >= 0)
 		{
-			effectTimer -= 0.01;
+			if (status)
+			{
+				effectTimer -= 0.01;
+			}
+			else
+			{
+				effectTimer -= 0.0025;
+			}
 			setFloat(&(render.shader), "iTime", sin(effectTimer));
 		}
 		else
@@ -320,32 +336,32 @@ int move(int dir, float *x, float *y, float speed)
 		break;
 	}
 	
-	(*x) = (floor(((*x))*100)/100);
-	(*y) = (floor(((*y))*100)/100);
-	if (((int)(((*x)-0.08f)*100)%2) != 0)
+	(*x) = (floor((*x)*100)/100);
+	(*y) = (floor((*y)*100)/100);
+	if (((int)(((*x))*100)%2) != 0)
 	{
 		(*x) += 0.01;
 	}
-	if (((int)(((*y)-0.08f)*100)%2) != 0)
+	if (((int)(((*y))*100)%2) != 0)
 	{
 		(*y) += 0.01;
 	}
 	
-	if ((*x) > 3.13)
+	if ((*x) > 3.2)
 	{
-		(*x) = -3.12;
+		(*x) = -3.2;
 	}
-	if ((*x) < -3.13)
+	if ((*x) < -3.22)
 	{
-		(*x) = 3.12;
+		(*x) = 3.2;
 	}
-	if ((*y) > 3.13)
+	if ((*y) > 3.2)
 	{
-		(*y) = -3.12;
+		(*y) = -3.2;
 	}
-	if ((*y) < -3.13)
+	if ((*y) < -3.22)
 	{
-		(*y) = 3.12;
+		(*y) = 3.2;
 	}
 	return 0;
 }

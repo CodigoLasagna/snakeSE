@@ -15,19 +15,19 @@ void main()
 	amount *= 1.0f + sin(iTime*16.0f) * 0.5f;
 	amount *= 1.0f + sin(iTime*19.0f) * 0.5f;
 	amount *= 1.0f + sin(iTime*27.0f) * 0.5f;
-	amount = pow(amount, 1.0f);
+	amount = pow(amount, 1.7f);
 	if(iTime > 0)
 	{
-		amount *= 0.005f;
+		amount *= 0.004f;
 	}
 	else
 	{
 		amount = 0;
 	}
 	
-	col.r = texture(screenTexture, vec2(TexCoords.x+amount, TexCoords.y+(amount/2.0f))).r;
-	col.g = texture(screenTexture, TexCoords).g;
-	col.b = texture(screenTexture, vec2(TexCoords.x-amount, TexCoords.y)).b;
+	col.r = texture(screenTexture, vec2(TexCoords.x+amount, TexCoords.y-(amount))).r;
+	col.g = texture(screenTexture, vec2(TexCoords.x, TexCoords.y+amount/6.0f)).g;
+	col.b = texture(screenTexture, vec2(TexCoords.x-amount, TexCoords.y+amount*1.5f)).b;
 	
 	col *= (1.0f - amount * 0.5f);
 	
