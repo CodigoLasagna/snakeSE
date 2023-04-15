@@ -1,8 +1,10 @@
 #include "source/engine/engine.h"
 #include <time.h>
 
-
 #define debug 0
+
+int rgb2hsv(float r, float g, float b, float *h, float *s, float *v);
+int hsv2rgb(float h, float s, float v, float *r, float *g, float *b);
 
 typedef struct _tnode
 {
@@ -28,7 +30,7 @@ int main()
 	Trenderer render;
 	Tobject light;
 	Tobject tile_floor, obj_pellet, obj_background, obj_body, obj_guide;
-	unsigned int floorDiffuse, floorSpecular, diff_apple, spec_apple, diff_background, diff_body, diff_head, diff_tail, diff_guide;
+	unsigned int floorDiffuse, floorSpecular, diff_pellet, diff_pellet2, spec_apple, diff_background, diff_body, diff_head, diff_tail, diff_guide;
 	unsigned int lightShader, instanceShader, objects_shader;
 	unsigned int uboMatrices;
 	unsigned int ibTiles;
@@ -43,13 +45,14 @@ int main()
 	int score = 0;
 	int status = 1;
 	float effectTimer = 0;
+	float r, g, b, h, s = 1.0f, v = 1.0f;
 	vec3 pelletColor = {0.4f, 0.1f, 1.0f};
 	vec3 lighColor = {1.0f, 1.0f, 1.0f};
 	vec3 bodyColorAl = {0.4f, 1.0f, 0.85f};
 	vec3 bodyColorDe = {0.8f, 0.2f, 0.6f};
 	vec3 adjustRot = {0.0f, 0.0f, 1.0f};
 	unsigned int seed;
-	vec3 scene_color = {0.2f, 0.4f, 0.35f};
+	vec3 scene_color = {0.0388f, 0.0388f, 0.0388f};
 	vec3 lpos = {0.0f, 10.0f, -1.0f};
 	Tnode head = NULL;
 	Tnode tail = NULL;
@@ -70,7 +73,8 @@ int main()
 	createTexture(&floorDiffuse, "./source/images/apple.png", 2, 1);
 	createTexture(&floorSpecular, "./source/images/grass_02_specular.png", 1, 1);
 	
-	createTexture(&diff_apple, "./source/images/pellet.png", 2, 1);
+	createTexture(&diff_pellet, "./source/images/pellet.png", 2, 1);
+	createTexture(&diff_pellet2, "./source/images/pellet2.png", 2, 1);
 	createTexture(&spec_apple, "./source/images/grass_02_specular.png", 1, 1);
 	
 	createTexture(&diff_body, "./source/images/body.png", 2, 1);
@@ -80,11 +84,11 @@ int main()
 	createTexture(&diff_background, "./source/images/bkg.png", 2, 1);
 	createTexture(&diff_guide, "./source/images/wasd.png", 2, 1);
 	
-	instance_create_quad(&obj_background, 0.0f, 0.0f, -1.003f, 640, 640, 1.0f, 5);
+	instance_create_quad(&obj_background, 0.0f, 0.0f, -1.0004f, 640, 640, 1.0f, 5);
 	
 	instance_create_cube(&light, 0.0f, 0.0f, 0.3f, 100, 100, 100, 0.5f, 5);
 	instance_create_quad(&tile_floor, 0.0f, 0.0f, 0.0f, 100, 100, 1.0f, 5);
-	instance_create_quad(&obj_pellet, 0.0f, 0.0f, -1.001f, 16, 16, 1.0f, 5);
+	instance_create_quad(&obj_pellet, 0.0f, 0.0f, -1.0001f, 16, 16, 1.0f, 5);
 	instance_create_quad(&obj_body, 0.0f, 0.0f, -1.0f, 16, 16, 1.0f, 5);
 	instance_create_quad(&obj_guide, 0.0f, 0.0f, -1.0002f, 192, 192, 1.0f, 5);
 	
@@ -110,7 +114,7 @@ int main()
 	prepare_renderer(&render, config);
 	
 	seed = time(NULL);
-	srand(seed);
+	srand(1);
 	
 	while(obj_pellet.position[0] == 0)
 	{
@@ -140,6 +144,7 @@ int main()
 		bind_texture(diff_background, 0);
 		instance_draw(obj_background, &objects_shader, camera);
 		
+		instance_draw(light, &lightShader, camera);
 		if (!score)
 		{
 			bind_texture(diff_guide, 0);
@@ -147,13 +152,24 @@ int main()
 		}
 		
 		glm_mat4_identity(obj_pellet.model);
+		obj_pellet.position[0] = xp + (sin(glfwGetTime())/35.0f)+0.08f;
+		obj_pellet.position[1] = yp + (cos(glfwGetTime())/35.0f)+0.08f;
 		glm_translate(obj_pellet.model, obj_pellet.position);
-		glm_rotate(obj_pellet.model, glm_rad(glfwGetTime() * 20), adjustRot);
+		if (obj_pellet.scale[0] > 1.0f)
+		{
+			glm_rotate(obj_pellet.model, (glm_rad(glfwGetTime() * 500)), adjustRot);
+			obj_pellet.scale[0] -= 1.0f;
+			obj_pellet.scale[1] -= 1.0f;
+			glm_scale(obj_pellet.model, obj_pellet.scale);
+			bind_texture(diff_pellet2, 0);
+		}
+		else
+		{
+			glm_rotate(obj_pellet.model, (glm_rad(glfwGetTime() * 50)), adjustRot);
+			bind_texture(diff_pellet, 0);
+		}
 		
-		instance_draw(light, &lightShader, camera);
-		bind_texture(diff_apple, 0);
 		instance_draw(obj_pellet, &objects_shader, camera);
-		
 		
 		glm_mat4_identity(obj_body.model);
 		glm_translate(obj_body.model, obj_body.position);
@@ -216,14 +232,14 @@ int main()
 			}
 			if (head)
 			{
-				printf("h x:%f y:%f\n", x*100+320, y*100+320);
-				printf("----------------------------\n");
 				if (x == xp && y == yp)
 				{
 					xp = ((float)((random()%36)-18)*16)/100;
 					yp = ((float)((random()%36)-18)*16)/100;
 					obj_pellet.position[0] = xp+0.08f;
 					obj_pellet.position[1] = yp+0.08f;
+					obj_pellet.scale[0] = 25.0f;
+					obj_pellet.scale[1] = 25.0f;
 					system("play ./source/sounds/pickup & disown");
 					effectTimer = 0.2;
 					score++;
@@ -277,6 +293,19 @@ int main()
 			setFloat(&(render.shader), "iTime", (0.01));
 		}
 		
+		hsv2rgb(h, s, v, &r, &g, &b);
+		if (h > 360)
+		{
+			h = 0;
+		}
+		h += 4;
+		pelletColor[0] = r;
+		pelletColor[1] = g;
+		pelletColor[2] = b;
+		scene_color[0] = r/15.0f;
+		scene_color[1] = g/15.0f;
+		scene_color[2] = b/15.0f;
+		prepare_material_lum(&objects_shader, 1, false, pelletColor, 1.0f, 0.7f, 90.0f);
 		light_position(&objects_shader, 1, obj_pellet.position);
 		
 		apply_input(dir, &last_dir, window);
@@ -347,21 +376,21 @@ int move(int dir, float *x, float *y, float speed)
 		(*y) += 0.01;
 	}
 	
-	if ((*x) > 3.2)
+	if ((*x) > 3.06f)
 	{
 		(*x) = -3.2;
 	}
-	if ((*x) < -3.22)
+	if ((*x) < -3.22f)
 	{
-		(*x) = 3.2;
+		(*x) = 3.04f;
 	}
-	if ((*y) > 3.2)
+	if ((*y) > 3.06f)
 	{
-		(*y) = -3.2;
+		(*y) = -3.2f;
 	}
-	if ((*y) < -3.22)
+	if ((*y) < -3.22f)
 	{
-		(*y) = 3.2;
+		(*y) = 3.04f;
 	}
 	return 0;
 }
@@ -398,3 +427,115 @@ int apply_input(int dir, int *last_dir, GLFWwindow *window)
 		}
 	return 0;
 }
+
+int rgb2hsv(float r, float g, float b, float *h, float *s, float *v)
+{
+	double min, max, delta;
+	
+	min = r < g ? r : g;
+	min = min  < b ? min  : b;
+	
+	max = r > g ? r : g;
+	max = max  > b ? max  : b;
+	
+	(*v) = max;
+	delta = max - min;
+	if (delta < 0.00001)
+	{
+		(*s) = 0;
+		(*h) = 0;
+		return 0;
+	}
+	if( max > 0.0 )
+	{
+		(*s) = (delta / max);
+	}
+	else
+	{
+		(*s) = 0.0;
+		(*h) = 0.0;
+		return 0;
+	}
+	if( r >= max )
+	{
+		(*h) = ( g - b ) / delta;
+	}
+	else
+	{
+		if( g >= max )
+		{
+			(*h) = 2.0 + ( b - r ) / delta;
+		}
+		else
+		{
+			(*h) = 4.0 + ( r - g ) / delta;
+		}
+	}
+	(*h) *= 60.0;
+	
+	if ( (*h) < 0.0 )
+	{
+		(*h) += 360.0;
+	}
+	
+	return 1;
+}
+
+
+int hsv2rgb(float h, float s, float v, float *r, float *g, float *b)
+{
+    double      hh, p, q, t, ff;
+    long        i;
+
+    if(s <= 0.0) {
+        (*r) = v;
+        (*g) = v;
+        (*b) = v;
+        return 0;
+    }
+    hh = h;
+    if(hh >= 360.0) hh = 0.0;
+    hh /= 60.0;
+    i = (long)hh;
+    ff = hh - i;
+    p = v * (1.0 - s);
+    q = v * (1.0 - (s * ff));
+    t = v * (1.0 - (s * (1.0 - ff)));
+
+    switch(i) {
+    case 0:
+        (*r) = v;
+        (*g) = t;
+        (*b) = p;
+        break;
+    case 1:
+        (*r) = q;
+        (*g) = v;
+        (*b) = p;
+        break;
+    case 2:
+        (*r) = p;
+        (*g) = v;
+        (*b) = t;
+        break;
+
+    case 3:
+        (*r) = p;
+        (*g) = q;
+        (*b) = v;
+        break;
+    case 4:
+        (*r) = t;
+        (*g) = p;
+        (*b) = v;
+        break;
+    case 5:
+    default:
+        (*r) = v;
+        (*g) = p;
+        (*b) = q;
+        break;
+    }
+    return 1;
+}
+
