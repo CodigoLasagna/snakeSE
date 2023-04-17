@@ -86,7 +86,7 @@ int main()
 	
 	instance_create_quad(&obj_background, 0.0f, 0.0f, -1.0004f, 640, 640, 1.0f, 5);
 	
-	instance_create_cube(&light, 0.0f, 0.0f, 0.3f, 100, 100, 100, 0.5f, 5);
+	instance_create_cube(&light, 0.0f, 0.0f, 10.0f, 100, 100, 100, 0.5f, 5);
 	instance_create_quad(&tile_floor, 0.0f, 0.0f, 0.0f, 100, 100, 1.0f, 5);
 	instance_create_quad(&obj_pellet, 0.0f, 0.0f, -1.0001f, 16, 16, 1.0f, 5);
 	instance_create_quad(&obj_body, 0.0f, 0.0f, -1.0f, 16, 16, 1.0f, 5);
@@ -97,7 +97,7 @@ int main()
 	prepare_material_lum(&instanceShader, 0, false, pelletColor, 0.7f, 0.09f, 0.032f);
 	
 	prepare_material(&objects_shader, 200, 0.0f);
-	prepare_material_lum(&objects_shader, 0, false, lighColor, 0.0001f, 0.7f, 2.5f);
+	prepare_material_lum(&objects_shader, 0, false, lighColor, 0.1f, 0.7f, 0.22f);
 	prepare_material_lum(&objects_shader, 1, false, pelletColor, 1.0f, 4.8f, 14.5f);
 	for(i = 2; i < 200; i++)
 	{
@@ -114,7 +114,7 @@ int main()
 	prepare_renderer(&render, config);
 	
 	seed = time(NULL);
-	srand(1);
+	srand(seed);
 	
 	while(obj_pellet.position[0] == 0)
 	{
@@ -201,7 +201,7 @@ int main()
 							{
 								prepare_material_lum(&objects_shader, i, false, bodyColorDe, 1.0f, 0.7f, 90.0f);
 							}
-							system("play ./source/sounds/death");
+							system("play -v 0.1 ./source/sounds/death");
 							effectTimer = 0.1;
 							status = 0;
 							prev_x = x;
@@ -240,7 +240,7 @@ int main()
 					obj_pellet.position[1] = yp+0.08f;
 					obj_pellet.scale[0] = 25.0f;
 					obj_pellet.scale[1] = 25.0f;
-					system("play ./source/sounds/pickup & disown");
+					system("play -v 0.1 ./source/sounds/pickup & disown");
 					effectTimer = 0.2;
 					score++;
 				}
@@ -253,7 +253,7 @@ int main()
 						if (!status)
 						{
 							effectTimer += 0.015;
-							system("play ./source/sounds/hurt3 & disown");
+							system("play -v 0.1 ./source/sounds/hurt3 & disown");
 						}
 					}
 					else
@@ -302,9 +302,9 @@ int main()
 		pelletColor[0] = r;
 		pelletColor[1] = g;
 		pelletColor[2] = b;
-		scene_color[0] = r/15.0f;
-		scene_color[1] = g/15.0f;
-		scene_color[2] = b/15.0f;
+		scene_color[0] = r/5.0f;
+		scene_color[1] = g/5.0f;
+		scene_color[2] = b/5.0f;
 		prepare_material_lum(&objects_shader, 1, false, pelletColor, 1.0f, 0.7f, 90.0f);
 		light_position(&objects_shader, 1, obj_pellet.position);
 		

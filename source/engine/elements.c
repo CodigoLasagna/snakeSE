@@ -369,7 +369,7 @@ int init_camera(Tcamera *camera, Tconfig config, float scale)
 	(camera->pitch) = 0.0f;
 	(camera->lastX) = (float)(camera->width)/2;
 	(camera->lastY) = (float)(camera->height)/2;
-	(camera->fov) = 45;
+	(camera->fov) = 147;
 ;
 	
 	glm_mat4_identity(camera->view);
@@ -550,6 +550,9 @@ int run_camera(Tcamera *camera, GLFWwindow *window)
 	{
 		glm_ortho(-((float)camera->width/160)/2, ((float)camera->width/160)/2, -((float)camera->height/160)/2, ((float)camera->height/160)/2, 0.01f, 2000.0f, camera->projection);
 	}
+	*/
+	/*
+	glm_perspective(glm_rad(camera->fov), (float)(camera->width) / (float)(camera->height), 0.01f, 2000.0f, camera->projection);
 	*/
 	glm_ortho(-((float)camera->width/scale_win), ((float)camera->width/scale_win), -((float)camera->height/scale_win), ((float)camera->height/scale_win), 0.01f, 2000.0f, camera->projection);
 	glm_lookat(camera->pos, helper, camera->up, camera->view);
