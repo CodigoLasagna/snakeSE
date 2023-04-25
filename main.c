@@ -1,10 +1,8 @@
 #include "source/engine/engine.h"
+#include "source/gameSnake/colorConv.h"
 #include <time.h>
 
 #define debug 0
-
-int rgb2hsv(float r, float g, float b, float *h, float *s, float *v);
-int hsv2rgb(float h, float s, float v, float *r, float *g, float *b);
 
 typedef struct _tnode
 {
@@ -29,13 +27,12 @@ int main()
 	Tcamera camera;
 	Trenderer render;
 	Tobject light;
-	Tobject tile_floor, obj_pellet, obj_background, obj_body, obj_guide;
-	unsigned int floorDiffuse, floorSpecular, diff_pellet, diff_pellet2, spec_apple, diff_background, diff_body, diff_head, diff_tail, diff_guide;
+	Tobject obj_pellet, obj_background, obj_body, obj_guide;
+	unsigned int diff_pellet, diff_pellet2, diff_background, diff_body, diff_head, diff_tail, diff_guide;
 	unsigned int lightShader, instanceShader, objects_shader;
 	unsigned int uboMatrices;
-	unsigned int ibTiles;
 	unsigned int i, j;
-	size_t counter = 0, sep = 0;
+	size_t counter = 0;
 	float objectsHeight = -4.0f;
 	float x, y, prev_x, prev_y;
 	float xp, yp;
@@ -70,12 +67,8 @@ int main()
 	createShader(&objects_shader, "./source/shaders/vertexShaders/obj_shader.vert", "./source/shaders/fragmentShaders/surfaceLight.frag");
 	createShader(&(render.shader), "./source/shaders/vertexShaders/rendertoquad.vert", "./source/shaders/fragmentShaders/chromAberration.frag");
 	
-	createTexture(&floorDiffuse, "./source/images/apple.png", 2, 1);
-	createTexture(&floorSpecular, "./source/images/grass_02_specular.png", 1, 1);
-	
 	createTexture(&diff_pellet, "./source/images/pellet.png", 2, 1);
 	createTexture(&diff_pellet2, "./source/images/pellet2.png", 2, 1);
-	createTexture(&spec_apple, "./source/images/grass_02_specular.png", 1, 1);
 	
 	createTexture(&diff_body, "./source/images/body.png", 2, 1);
 	createTexture(&diff_head, "./source/images/head.png", 2, 1);
@@ -87,7 +80,6 @@ int main()
 	instance_create_quad(&obj_background, 0.0f, 0.0f, -1.0004f, 640, 640, 1.0f, 5);
 	
 	instance_create_cube(&light, 0.0f, 0.0f, 10.0f, 100, 100, 100, 0.5f, 5);
-	instance_create_quad(&tile_floor, 0.0f, 0.0f, 0.0f, 100, 100, 1.0f, 5);
 	instance_create_quad(&obj_pellet, 0.0f, 0.0f, -1.0001f, 16, 16, 1.0f, 5);
 	instance_create_quad(&obj_body, 0.0f, 0.0f, -1.0f, 16, 16, 1.0f, 5);
 	instance_create_quad(&obj_guide, 0.0f, 0.0f, -1.0002f, 192, 192, 1.0f, 5);
@@ -201,7 +193,7 @@ int main()
 							{
 								prepare_material_lum(&objects_shader, i, false, bodyColorDe, 1.0f, 0.7f, 90.0f);
 							}
-							system("play -v 0.1 ./source/sounds/death");
+							system("play ./source/sounds/death");
 							effectTimer = 0.1;
 							status = 0;
 							prev_x = x;
@@ -240,7 +232,7 @@ int main()
 					obj_pellet.position[1] = yp+0.08f;
 					obj_pellet.scale[0] = 25.0f;
 					obj_pellet.scale[1] = 25.0f;
-					system("play -v 0.1 ./source/sounds/pickup & disown");
+					system("play ./source/sounds/pickup & disown");
 					effectTimer = 0.2;
 					score++;
 				}
@@ -253,7 +245,7 @@ int main()
 						if (!status)
 						{
 							effectTimer += 0.015;
-							system("play -v 0.1 ./source/sounds/hurt3 & disown");
+							system("play ./source/sounds/hurt3 & disown");
 						}
 					}
 					else
@@ -426,116 +418,5 @@ int apply_input(int dir, int *last_dir, GLFWwindow *window)
 			}
 		}
 	return 0;
-}
-
-int rgb2hsv(float r, float g, float b, float *h, float *s, float *v)
-{
-	double min, max, delta;
-	
-	min = r < g ? r : g;
-	min = min  < b ? min  : b;
-	
-	max = r > g ? r : g;
-	max = max  > b ? max  : b;
-	
-	(*v) = max;
-	delta = max - min;
-	if (delta < 0.00001)
-	{
-		(*s) = 0;
-		(*h) = 0;
-		return 0;
-	}
-	if( max > 0.0 )
-	{
-		(*s) = (delta / max);
-	}
-	else
-	{
-		(*s) = 0.0;
-		(*h) = 0.0;
-		return 0;
-	}
-	if( r >= max )
-	{
-		(*h) = ( g - b ) / delta;
-	}
-	else
-	{
-		if( g >= max )
-		{
-			(*h) = 2.0 + ( b - r ) / delta;
-		}
-		else
-		{
-			(*h) = 4.0 + ( r - g ) / delta;
-		}
-	}
-	(*h) *= 60.0;
-	
-	if ( (*h) < 0.0 )
-	{
-		(*h) += 360.0;
-	}
-	
-	return 1;
-}
-
-
-int hsv2rgb(float h, float s, float v, float *r, float *g, float *b)
-{
-    double      hh, p, q, t, ff;
-    long        i;
-
-    if(s <= 0.0) {
-        (*r) = v;
-        (*g) = v;
-        (*b) = v;
-        return 0;
-    }
-    hh = h;
-    if(hh >= 360.0) hh = 0.0;
-    hh /= 60.0;
-    i = (long)hh;
-    ff = hh - i;
-    p = v * (1.0 - s);
-    q = v * (1.0 - (s * ff));
-    t = v * (1.0 - (s * (1.0 - ff)));
-
-    switch(i) {
-    case 0:
-        (*r) = v;
-        (*g) = t;
-        (*b) = p;
-        break;
-    case 1:
-        (*r) = q;
-        (*g) = v;
-        (*b) = p;
-        break;
-    case 2:
-        (*r) = p;
-        (*g) = v;
-        (*b) = t;
-        break;
-
-    case 3:
-        (*r) = p;
-        (*g) = q;
-        (*b) = v;
-        break;
-    case 4:
-        (*r) = t;
-        (*g) = p;
-        (*b) = v;
-        break;
-    case 5:
-    default:
-        (*r) = v;
-        (*g) = p;
-        (*b) = q;
-        break;
-    }
-    return 1;
 }
 
